@@ -1,0 +1,17 @@
+[33mcommit a8912f160b9538a9676751f24533db56bb002df5[m[33m ([m[1;36mHEAD -> [m[1;32morigin/class-2-exercises[m[33m)[m
+Author: honganhss <honganh068204@gmail.com>
+Date:   Mon Jul 10 19:13:26 2023 +0700
+
+    Homework2
+
+[33mcommit 428d1ed663890fb6a59952f35e61d1f66b22531d[m
+Author: CocDap <hodinhdung1997@gmail.com>
+Date:   Sat Jul 8 14:35:01 2023 +0700
+
+    chore: fix exercise 2
+
+[33mcommit 460ff244be6629baf1532d90e97d038656649273[m
+Author: CocDap <hodinhdung1997@gmail.com>
+Date:   Fri Jul 7 00:11:34 2023 +0700
+
+    feat: add ownership and borrowing exercises
