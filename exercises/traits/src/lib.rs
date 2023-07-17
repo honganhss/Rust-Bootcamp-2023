@@ -14,7 +14,7 @@ trait Hello {
 struct Student {}
 impl Hello for Student {
     fn say_something(&self) -> String {
-        String::from("I'm a good student")
+        String::from("I'm a good student.")
     }
 }
 //TODO
