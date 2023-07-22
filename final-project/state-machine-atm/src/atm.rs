@@ -1,8 +1,6 @@
-//! The automated teller machine gives you cash after you swipe your card and enter your pin.
-//! The atm may fail to give you cash if it is empty or you haven't swiped your card, or you have
-//! entered the wrong pin.
-
 use crate::traits::StateMachine;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 /// The keys on the ATM keypad
 pub enum Key {
@@ -13,75 +11,105 @@ pub enum Key {
     Enter,
 }
 
-
-
-
 /// Something you can do to the ATM
 pub enum Action {
-    /// Swipe your card at the ATM. The attached value is the hash of the pin
-    /// that should be keyed in on the keypad next.
     SwipeCard(u64),
-    /// Press a key on the keypad
     PressKey(Key),
 }
 
 /// The various states of authentication possible with the ATM
+#[derive(Debug, Clone, PartialEq)]
 enum Auth {
-    /// No session has begun yet. Waiting for the user to swipe their card
     Waiting,
-    /// The user has swiped their card, providing the enclosed PIN hash.
-    /// Waiting for the user to key in their pin
     Authenticating(u64),
-    /// The user has authenticated. Waiting for them to key in the amount
-    /// of cash to withdraw
     Authenticated,
 }
 
-
-
-
-/// The ATM. When a card is swiped, the ATM learns the correct pin's hash.
-/// It waits for you to key in your pin. You can press as many numeric keys as
-/// you like followed by enter. If the pin is incorrect, your card is returned
-/// and the ATM automatically goes back to the main menu. If your pin is correct,
-/// the ATM waits for you to key in an amount of money to withdraw. Withdraws
-/// are bounded only by the cash in the machine (there is no account balance).
-pub struct Atm {
-    /// How much money is in the ATM
-    cash_inside: u64,
-    /// The machine's authentication status.
-    expected_pin_hash: Auth,
-    /// All the keys that have been pressed since the last `Enter`
-    keystroke_register: Vec<Key>,
-}
-
-
-//TODO
-// Implement trait Default for Auth 
-// return Waiting status 
 impl Default for Auth {
-    
+    fn default() -> Self {
+        Auth::Waiting
+    }
 }
 
-
-//TODO
-// Implement trait From  for &str
-// Convert  elements in Key to &str
 impl From<Key> for &str {
+    fn from(key: Key) -> Self {
+        match key {
+            Key::One => "1",
+            Key::Two => "2",
+            Key::Three => "3",
+            Key::Four => "4",
+            Key::Enter => "Enter",
+        }
+    }
 }
 
 impl StateMachine for Atm {
-    // Notice that we are using the same type for the state as we are using for the machine this time.
-    type State;
-    type Transition;
-    // Hint
-    // Should use `default` method when auth status is Waiting status
-    // Should use `from` method to convert  elements in Key to &str
-    // Parse &str to integer to calculate amount
-    // Use a hash function to verify the PIN both before and after the user presses the Enter key.
+    type State = Auth;
+    type Transition = Action;
+
     fn next_state(starting_state: &Self::State, t: &Self::Transition) -> Self::State {
-        todo!("Final project")
+        match (starting_state, t) {
+            (Auth::Waiting, Action::SwipeCard(pin_hash)) => Auth::Authenticating(*pin_hash),
+            (Auth::Authenticating(pin_hash), Action::PressKey(Key::Enter)) => {
+                // Simulate PIN hash verification (using simple hashing for demonstration)
+                let mut hasher = DefaultHasher::new();
+                starting_state.hash(&mut hasher);
+                let current_hash = hasher.finish();
+
+                if current_hash == *pin_hash {
+                    Auth::Authenticated
+                } else {
+                    Auth::Waiting
+                }
+            }
+            (Auth::Authenticated, Action::PressKey(Key::Enter)) => {
+                // Simulate cash withdrawal
+                if let Some(amount) =
+                    calculate_withdrawal_amount(&starting_state.keystroke_register)
+                {
+                    if starting_state.cash_inside >= amount {
+                        // Update the cash inside the ATM after withdrawal
+                        let new_cash_inside = starting_state.cash_inside - amount;
+                        Auth::Waiting // Reset state back to waiting for the next transaction
+                            .with_cash_inside(new_cash_inside)
+                    } else {
+                        Auth::Waiting
+                    }
+                } else {
+                    Auth::Waiting
+                }
+            }
+            _ => starting_state.clone(), // No state change, return the current state
+        }
     }
+}
+
+fn calculate_withdrawal_amount(keystroke_register: &[Key]) -> Option<u64> {
+    let mut amount_str = String::new();
+    for key in keystroke_register {
+        if let Key::Enter = key {
+            break;
+        }
+        amount_str.push_str(&String::from(*key));
+    }
+    amount_str.parse().ok()
+}
+
+impl Atm {
+    // Helper method to create a new `Atm` with updated `cash_inside` value
+    fn with_cash_inside(&self, cash_inside: u64) -> Atm {
+        Atm {
+            cash_inside,
+            expected_pin_hash: self.expected_pin_hash.clone(),
+            keystroke_register: Vec::new(),
+        }
+    }
+}
+
+pub struct Atm {
+    cash_inside: u64,
+    expected_pin_hash: Auth,
+    keystroke_register: Vec<Key>,
 }
 
 #[test]
